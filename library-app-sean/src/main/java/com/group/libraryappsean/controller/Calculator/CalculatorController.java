@@ -25,4 +25,6 @@ public class CalculatorController {
         // post 요청의 경우 body 데이터를 parsing 하는 과정(json to obj)이 필요 => @RequestBody
         return request.getNumber1() * request.getNumber2();
     }
+
+
 }
