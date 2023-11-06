@@ -62,13 +62,35 @@ public class UserController {
 
     @PutMapping("/user")
     public void updateUser(@RequestBody UserUpdateRequest request) {
+        String readSql = "SELECT * FROM user WHERE id = ?"; // id 로 유저 존재 여부 확인
+        // readSql 실행해 DB에 데이터 존재 여부 확인
+        // .query(): 0은 최종적으로 List 로 반환 (GetMapping /user 참고)
+        // (rs, rowNum) -> 0 : 조회 결과가 있다면 0 반환
+        // request.getId() : readSql 의 ? 값에 id 대응
+        boolean isUserNotExsits = jdbcTemplate.query(readSql, (rs, rowNum) -> 0, request.getId()).isEmpty();
+        if (isUserNotExsits) {
+            throw new IllegalArgumentException();
+        }
+
         String sql = "UPDATE user SET name = ? WHERE id = ?";
         jdbcTemplate.update(sql, request.getName(), request.getId());
     }
 
     @DeleteMapping("/user")
     public void deleteUser(@RequestParam String name) {
+        String readSql = "SELECT * FROM user WHERE name = ?";
+        boolean isUserNotExsits = jdbcTemplate.query(readSql, (rs, rowNum) -> 0, name).isEmpty();
+        if (isUserNotExsits) {
+            throw new IllegalArgumentException();
+        }
+
         String sql = "DELETE FROM user where name = ?";
         jdbcTemplate.update(sql, name);
     }
+
+    // 예외 테스트
+//   @GetMapping("/user/error-test")
+//    public void errorTest() {
+//        throw new IllegalArgumentException();
+//   }
 }
