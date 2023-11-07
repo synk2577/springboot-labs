@@ -1,91 +1,44 @@
 package com.group.libraryappsean.controller.user;
 
-import com.group.libraryappsean.domain.user.User;
 import com.group.libraryappsean.dto.user.request.UserCreateRequest;
 import com.group.libraryappsean.dto.user.request.UserUpdateRequest;
 import com.group.libraryappsean.dto.user.response.UserResponse;
+import com.group.libraryappsean.service.user.UserService;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
 public class UserController {
 
 //    private final List<User> users = new ArrayList<>();
-    private final JdbcTemplate jdbcTemplate; // JdbcTemplate: jdbc에 대한 커넥터
+    private final UserService userService;
+
 
     public UserController(JdbcTemplate jdbcTemplate) {
-        // jdbcTemplate 를 생성자에 직접 넣지 않더라도 Spring이 알아서 jdbcTemplate을 넣어줌
-        this.jdbcTemplate = jdbcTemplate;
+        // jdbcTemplate 을 각 계층 클래스의 메서드에 인자로 넘기기 번거로우므로 각 계층의 객체 생성시 생성자에서 자동으로 넘겨줌
+        this.userService = new UserService(jdbcTemplate);
     }
 
     @PostMapping("/user") // POST /user - 유저 생성
     public void saveUser(@RequestBody UserCreateRequest request) {
-//        users.add(new User(request.getName(), request.getAge()));
-        String sql = "insert into user (name, age) values (?, ?)";
-        jdbcTemplate.update(sql, request.getName(), request.getAge());
+        userService.createUser(request);
     }
 
     @GetMapping("/user") // GET /user - 유저 조회
     public List<UserResponse> getUsers() {
-//        List<UserResponse> responses = new ArrayList<>();
-//        for (int i = 0; i < users.size(); i++) {
-//            responses.add(new UserResponse(i + 1, users.get(i)));
-//        }
-//
-//        return responses;
-
-        String sql = "select * from user";
-//        return jdbcTemplate.query(sql, new RowMapper<UserResponse>() {
-//            @Override
-//            public UserResponse mapRow(ResultSet rs, int rowNum) throws SQLException {
-//                long id = rs.getLong("id");
-//                String name = rs.getString("name");
-//                int age = rs.getInt("age");
-//                return new UserResponse(id, name, age);
-//            }
-//        });
-
-        // 위 코드를 java lambda를 사용해 간결하게!
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            long id = rs.getLong("id");
-            String name = rs.getString("name");
-            int age = rs.getInt("age");
-            return new UserResponse(id, name, age);
-        });
+        return userService.readUser();
     }
 
     @PutMapping("/user")
     public void updateUser(@RequestBody UserUpdateRequest request) {
-        String readSql = "SELECT * FROM user WHERE id = ?"; // id 로 유저 존재 여부 확인
-        // readSql 실행해 DB에 데이터 존재 여부 확인
-        // .query(): 0은 최종적으로 List 로 반환 (GetMapping /user 참고)
-        // (rs, rowNum) -> 0 : 조회 결과가 있다면 0 반환
-        // request.getId() : readSql 의 ? 값에 id 대응
-        boolean isUserNotExsits = jdbcTemplate.query(readSql, (rs, rowNum) -> 0, request.getId()).isEmpty();
-        if (isUserNotExsits) {
-            throw new IllegalArgumentException();
-        }
-
-        String sql = "UPDATE user SET name = ? WHERE id = ?";
-        jdbcTemplate.update(sql, request.getName(), request.getId());
+        userService.updateUser(request);
     }
 
     @DeleteMapping("/user")
     public void deleteUser(@RequestParam String name) {
-        String readSql = "SELECT * FROM user WHERE name = ?";
-        boolean isUserNotExsits = jdbcTemplate.query(readSql, (rs, rowNum) -> 0, name).isEmpty();
-        if (isUserNotExsits) {
-            throw new IllegalArgumentException();
-        }
-
-        String sql = "DELETE FROM user where name = ?";
-        jdbcTemplate.update(sql, name);
+        userService.deleteUser(name);
     }
 
     // 예외 테스트
